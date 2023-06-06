@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node index.js",
+    "pack": "rm -f a.zip && zip -r a.zip dist node_modules package.json index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Meng-Yuan Huang",
