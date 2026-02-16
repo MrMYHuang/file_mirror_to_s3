@@ -8,22 +8,37 @@ const s3bucket = new AWS.S3({
 });
 
 async function uploadObjectToS3Bucket(objectName: string, objectData: any) {
-  return new Promise<void>((ok, fail) => {
-    const s3params: AWS.S3.PutObjectRequest = {
-      Bucket: params.BUCKET_NAME,
-      Key: objectName,
-      Body: objectData,
-      ACL: 'public-read'
-    };
-    s3bucket.upload(s3params, function (err: Error, data: { Location: any; }) {
-      if (err) {
-        fail(err);
-        return;
-      }
+  const s3client = await getS3BucketClient();
+  const s3params: AWS.S3.PutObjectRequest = {
+    Bucket: params.BUCKET_NAME,
+    Key: objectName,
+    Body: objectData,
+  };
+  await s3client.upload(s3params).promise();
+}
 
-      ok();
-    });
+async function getS3BucketClient() {
+  const location = await s3bucket
+    .getBucketLocation({ Bucket: params.BUCKET_NAME })
+    .promise();
+
+  const bucketRegion = normalizeBucketRegion(location.LocationConstraint);
+
+  return new AWS.S3({
+    accessKeyId: params.IAM_USER_KEY,
+    secretAccessKey: params.IAM_USER_SECRET,
+    region: bucketRegion,
   });
+}
+
+function normalizeBucketRegion(locationConstraint?: string) {
+  if (!locationConstraint) {
+    return 'us-east-1';
+  }
+  if (locationConstraint === 'EU') {
+    return 'eu-west-1';
+  }
+  return locationConstraint;
 }
 
 async function downloadSource() {
@@ -41,6 +56,7 @@ export async function fileMirroringToS3() {
     await uploadObjectToS3Bucket(params.S3_OBJECT_NAME, data);
     console.log(`File mirroring success!`);
   } catch (err) {
+    // Don't rethrow err, becuase it causes frequently lambda retry.
     console.error(`File mirroring failed: ` + err);
   }
 }
