@@ -63,5 +63,5 @@ variable "enable_schedule" {
 variable "schedule_expression" {
   description = "EventBridge schedule expression (e.g. rate(1 day) or cron(...))"
   type        = string
-  default     = "rate(1 day)"
+  default     = "cron(*/10 * * * ? *)"
 }
